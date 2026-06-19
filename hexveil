@@ -3,11 +3,11 @@
 --  Unified GUI Script — All Features
 -- ============================================================
 
-if game.CoreGui:FindFirstChild("HEXVEIL_GUI") then
-    game.CoreGui.HEXVEIL_GUI:Destroy()
+if LP.PlayerGui:FindFirstChild("HEXVEIL_GUI") then
+    LP.PlayerGui.HEXVEIL_GUI:Destroy()
 end
-if game.CoreGui:FindFirstChild("ESP_Tags") then
-    game.CoreGui.ESP_Tags:Destroy()
+if LP.PlayerGui:FindFirstChild("ESP_Tags") then
+    LP.PlayerGui.ESP_Tags:Destroy()
 end
 
 -- ============================================================
@@ -146,8 +146,8 @@ ScreenGui.Name             = "HEXVEIL_GUI"
 ScreenGui.ResetOnSpawn     = false
 ScreenGui.ZIndexBehavior   = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder     = 999
-ScreenGui.IgnoreGuiInset   = true
-ScreenGui.Parent           = game.CoreGui
+ScreenGui.IgnoreGuiInset   = false
+ScreenGui.Parent           = LP.PlayerGui
 
 -- ============================================================
 -- BACKGROUND MUSIC
@@ -904,7 +904,7 @@ espSet(true)
 
 local espFolder = Instance.new("Folder")
 espFolder.Name   = "ESP_Tags"
-espFolder.Parent = game.CoreGui
+espFolder.Parent = LP.PlayerGui
 
 local function createESPTag(p)
     if p == LP then return end
