@@ -141,7 +141,7 @@ Title.Parent = Header
 local SubTitle = Instance.new("TextLabel")
 SubTitle.Name = "SubTitle"
 SubTitle.Size = UDim2.new(0.5, 0, 0, 14)
-SubTitle.Position = UDim2.new(0, 19, 0, 24)
+SubTitle.Position = UDim2.new(0, 17,0, 0)
 SubTitle.BackgroundTransparency = 1
 SubTitle.Text = "by Nazam"
 SubTitle.Font = Enum.Font.Gotham
@@ -1778,26 +1778,9 @@ local turunBtn = createButton(toolsPage, "Turun (Stop Follow)", Color3.fromRGB(3
 end)
 
 -- TELEPORT LOCATION
+-- ===================== TELEPORT LOCATION (FIX) =====================
 local savedLocations = {}
-local locScroll = Instance.new("ScrollingFrame", toolsPage)
-locScroll.Size = UDim2.new(1, 0, 0, 120)
-locScroll.BackgroundColor3 = Color3.fromRGB(18,18,24)
-locScroll.BorderSizePixel = 0
-locScroll.ScrollBarThickness = 3
-locScroll.ScrollBarImageColor3 = Color3.fromRGB(80,120,255)
-locScroll.CanvasSize = UDim2.new(0,0,0,0)
-locScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-corner(locScroll, UDim.new(0,6))
-
-local locLayout = Instance.new("UIListLayout", locScroll)
-locLayout.Padding = UDim.new(0,6)
-locLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local locPad = Instance.new("UIPadding", locScroll)
-locPad.PaddingLeft = UDim.new(0,6)
-locPad.PaddingRight = UDim.new(0,6)
-locPad.PaddingTop = UDim.new(0,6)
-locPad.PaddingBottom = UDim.new(0,6)
+local MAX_SLOTS = 10
 
 local function LoadSaves()
     local data = player.PlayerGui:FindFirstChild("__TSData")
@@ -1823,19 +1806,237 @@ local function TeleportTo(pos)
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-    hrp.CFrame = CFrame.new(Vector3.new(pos.X, pos.Y + 500, pos.Z))
+    hrp.CFrame = CFrame.new(pos + Vector3.new(0, 500, 0))
     task.wait()
     hrp.CFrame = CFrame.new(pos)
 end
 
-local function RenderLocations()
+-- POPUP NAMA
+local function ShowNameInput(callback)
+    local overlay = Instance.new("Frame", ScreenGui)
+    overlay.Size = UDim2.new(1,0,1,0)
+    overlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    overlay.BackgroundTransparency = 0.5
+    overlay.ZIndex = 20
+
+    local dialog = Instance.new("Frame", overlay)
+    dialog.Size = UDim2.new(0, 270, 0, 140)
+    dialog.Position = UDim2.new(0.5, -135, 0.5, -70)
+    dialog.BackgroundColor3 = Color3.fromRGB(22,22,32)
+    dialog.BorderSizePixel = 0
+    dialog.ZIndex = 21
+    corner(dialog, UDim.new(0,10))
+    stroke(dialog, Color3.fromRGB(80,120,255), 1.5, 0.5)
+
+    local title = Instance.new("TextLabel", dialog)
+    title.Size = UDim2.new(1,-20,0,28)
+    title.Position = UDim2.new(0,10,0,10)
+    title.BackgroundTransparency = 1
+    title.Text = "Nama Lokasi"
+    title.TextColor3 = Color3.fromRGB(180,200,255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.ZIndex = 22
+
+    local input = Instance.new("TextBox", dialog)
+    input.Size = UDim2.new(1,-20,0,32)
+    input.Position = UDim2.new(0,10,0,46)
+    input.BackgroundColor3 = Color3.fromRGB(35,35,50)
+    input.TextColor3 = Color3.fromRGB(230,230,255)
+    input.PlaceholderText = "Ketik nama..."
+    input.PlaceholderColor3 = Color3.fromRGB(100,100,130)
+    input.Font = Enum.Font.Gotham
+    input.TextSize = 13
+    input.BorderSizePixel = 0
+    input.ZIndex = 22
+    corner(input, UDim.new(0,6))
+    stroke(input, Color3.fromRGB(80,120,255), 1, 0.5)
+
+    local okBtn = Instance.new("TextButton", dialog)
+    okBtn.Size = UDim2.new(0,100,0,30)
+    okBtn.Position = UDim2.new(0,10,1,-42)
+    okBtn.BackgroundColor3 = Color3.fromRGB(60,100,255)
+    okBtn.Text = "Simpan"
+    okBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    okBtn.Font = Enum.Font.GothamBold
+    okBtn.TextSize = 13
+    okBtn.BorderSizePixel = 0
+    okBtn.ZIndex = 22
+    corner(okBtn, UDim.new(0,6))
+
+    local cancelBtn = Instance.new("TextButton", dialog)
+    cancelBtn.Size = UDim2.new(0,100,0,30)
+    cancelBtn.Position = UDim2.new(1,-110,1,-42)
+    cancelBtn.BackgroundColor3 = Color3.fromRGB(50,50,70)
+    cancelBtn.Text = "Batal"
+    cancelBtn.TextColor3 = Color3.fromRGB(200,200,200)
+    cancelBtn.Font = Enum.Font.GothamBold
+    cancelBtn.TextSize = 13
+    cancelBtn.BorderSizePixel = 0
+    cancelBtn.ZIndex = 22
+    corner(cancelBtn, UDim.new(0,6))
+
+    okBtn.MouseButton1Click:Connect(function()
+        local name = input.Text:match("^%s*(.-)%s*$")
+        if name == "" then return end
+        overlay:Destroy()
+        callback(name)
+    end)
+    cancelBtn.MouseButton1Click:Connect(function() overlay:Destroy() end)
+end
+
+-- POPUP KOORDINAT
+local function ShowCoordInput()
+    if #savedLocations >= MAX_SLOTS then return end
+    local overlay = Instance.new("Frame", ScreenGui)
+    overlay.Size = UDim2.new(1,0,1,0)
+    overlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    overlay.BackgroundTransparency = 0.5
+    overlay.ZIndex = 20
+
+    local dialog = Instance.new("Frame", overlay)
+    dialog.Size = UDim2.new(0, 280, 0, 250)
+    dialog.Position = UDim2.new(0.5, -140, 0.5, -125)
+    dialog.BackgroundColor3 = Color3.fromRGB(22,22,32)
+    dialog.BorderSizePixel = 0
+    dialog.ZIndex = 21
+    corner(dialog, UDim.new(0,10))
+    stroke(dialog, Color3.fromRGB(40,180,180), 1.5, 0.5)
+
+    local title = Instance.new("TextLabel", dialog)
+    title.Size = UDim2.new(1,-20,0,28)
+    title.Position = UDim2.new(0,10,0,8)
+    title.BackgroundTransparency = 1
+    title.Text = "Input Koordinat"
+    title.TextColor3 = Color3.fromRGB(80,220,220)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.ZIndex = 22
+
+    local function MakeRow(label, yPos)
+        local lbl = Instance.new("TextLabel", dialog)
+        lbl.Size = UDim2.new(0,28,0,28)
+        lbl.Position = UDim2.new(0,10,0,yPos)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = label
+        lbl.TextColor3 = Color3.fromRGB(180,220,255)
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 13
+        lbl.ZIndex = 22
+
+        local box = Instance.new("TextBox", dialog)
+        box.Size = UDim2.new(1,-52,0,28)
+        box.Position = UDim2.new(0,42,0,yPos)
+        box.BackgroundColor3 = Color3.fromRGB(35,35,50)
+        box.TextColor3 = Color3.fromRGB(230,230,255)
+        box.PlaceholderText = "0"
+        box.PlaceholderColor3 = Color3.fromRGB(100,100,130)
+        box.Font = Enum.Font.Gotham
+        box.TextSize = 13
+        box.BorderSizePixel = 0
+        box.ZIndex = 22
+        corner(box, UDim.new(0,6))
+        stroke(box, Color3.fromRGB(40,160,160), 1, 0.5)
+        return box
+    end
+
+    local boxX = MakeRow("X", 44)
+    local boxY = MakeRow("Y", 82)
+    local boxZ = MakeRow("Z", 120)
+
+    local nameLabel = Instance.new("TextLabel", dialog)
+    nameLabel.Size = UDim2.new(1,-20,0,20)
+    nameLabel.Position = UDim2.new(0,10,0,158)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = "Nama Lokasi"
+    nameLabel.TextColor3 = Color3.fromRGB(180,200,255)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 12
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.ZIndex = 22
+
+    local nameInput = Instance.new("TextBox", dialog)
+    nameInput.Size = UDim2.new(1,-20,0,28)
+    nameInput.Position = UDim2.new(0,10,0,178)
+    nameInput.BackgroundColor3 = Color3.fromRGB(35,35,50)
+    nameInput.TextColor3 = Color3.fromRGB(230,230,255)
+    nameInput.PlaceholderText = "Nama..."
+    nameInput.PlaceholderColor3 = Color3.fromRGB(100,100,130)
+    nameInput.Font = Enum.Font.Gotham
+    nameInput.TextSize = 13
+    nameInput.BorderSizePixel = 0
+    nameInput.ZIndex = 22
+    corner(nameInput, UDim.new(0,6))
+    stroke(nameInput, Color3.fromRGB(80,120,255), 1, 0.5)
+
+    local saveBtn = Instance.new("TextButton", dialog)
+    saveBtn.Size = UDim2.new(0,100,0,30)
+    saveBtn.Position = UDim2.new(0,10,1,-42)
+    saveBtn.BackgroundColor3 = Color3.fromRGB(40,160,160)
+    saveBtn.Text = "Simpan"
+    saveBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    saveBtn.Font = Enum.Font.GothamBold
+    saveBtn.TextSize = 13
+    saveBtn.BorderSizePixel = 0
+    saveBtn.ZIndex = 22
+    corner(saveBtn, UDim.new(0,6))
+
+    local cancelBtn = Instance.new("TextButton", dialog)
+    cancelBtn.Size = UDim2.new(0,100,0,30)
+    cancelBtn.Position = UDim2.new(1,-110,1,-42)
+    cancelBtn.BackgroundColor3 = Color3.fromRGB(50,50,70)
+    cancelBtn.Text = "Batal"
+    cancelBtn.TextColor3 = Color3.fromRGB(200,200,200)
+    cancelBtn.Font = Enum.Font.GothamBold
+    cancelBtn.TextSize = 13
+    cancelBtn.BorderSizePixel = 0
+    cancelBtn.ZIndex = 22
+    corner(cancelBtn, UDim.new(0,6))
+
+    saveBtn.MouseButton1Click:Connect(function()
+        local nx = tonumber(boxX.Text)
+        local ny = tonumber(boxY.Text)
+        local nz = tonumber(boxZ.Text)
+        local name = nameInput.Text:match("^%s*(.-)%s*$")
+        if not nx or not ny or not nz then return end
+        if name == "" then return end
+        if #savedLocations >= MAX_SLOTS then return end
+        table.insert(savedLocations, {name = name, x = nx, y = ny, z = nz})
+        CommitSaves()
+        RenderLocations()
+        overlay:Destroy()
+    end)
+    cancelBtn.MouseButton1Click:Connect(function() overlay:Destroy() end)
+end
+
+local locScroll = Instance.new("ScrollingFrame", toolsPage)
+locScroll.Size = UDim2.new(1, 0, 0, 140)
+locScroll.BackgroundColor3 = Color3.fromRGB(18,18,24)
+locScroll.BorderSizePixel = 0
+locScroll.ScrollBarThickness = 3
+locScroll.ScrollBarImageColor3 = Color3.fromRGB(80,120,255)
+locScroll.CanvasSize = UDim2.new(0,0,0,0)
+locScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+corner(locScroll, UDim.new(0,6))
+
+local locLayout = Instance.new("UIListLayout", locScroll)
+locLayout.Padding = UDim.new(0,4)
+locLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local locPad = Instance.new("UIPadding", locScroll)
+locPad.PaddingLeft = UDim.new(0,6)
+locPad.PaddingRight = UDim.new(0,6)
+locPad.PaddingTop = UDim.new(0,4)
+locPad.PaddingBottom = UDim.new(0,4)
+
+function RenderLocations()
     for _, child in ipairs(locScroll:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
 
     for i, loc in ipairs(savedLocations) do
         local slot = Instance.new("Frame", locScroll)
-        slot.Size = UDim2.new(1, 0, 0, 36)
+        slot.Size = UDim2.new(1, 0, 0, 34)
         slot.BackgroundColor3 = Color3.fromRGB(28,28,42)
         slot.BorderSizePixel = 0
         slot.LayoutOrder = i
@@ -1843,55 +2044,46 @@ local function RenderLocations()
         stroke(slot, Color3.fromRGB(60,80,160), 1, 0.5)
 
         local nameLbl = Instance.new("TextLabel", slot)
-        nameLbl.Size = UDim2.new(1, -80, 0.5, 0)
+        nameLbl.Size = UDim2.new(1, -80, 1, 0)
         nameLbl.Position = UDim2.new(0, 8, 0, 0)
         nameLbl.BackgroundTransparency = 1
-        nameLbl.Text = "📌 " .. loc.name
+        nameLbl.Text = loc.name .. "  (" .. string.format("%.0f, %.0f, %.0f", loc.x, loc.y, loc.z) .. ")"
         nameLbl.TextColor3 = Color3.fromRGB(200,220,255)
-        nameLbl.Font = Enum.Font.GothamBold
-        nameLbl.TextSize = 12
+        nameLbl.Font = Enum.Font.Gotham
+        nameLbl.TextSize = 11
         nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+        nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
 
-        local coordLbl = Instance.new("TextLabel", slot)
-        coordLbl.Size = UDim2.new(1, -80, 0.5, 0)
-        coordLbl.Position = UDim2.new(0, 8, 0.5, 0)
-        coordLbl.BackgroundTransparency = 1
-        coordLbl.Text = string.format("X:%.0f Y:%.0f Z:%.0f", loc.x, loc.y, loc.z)
-        coordLbl.TextColor3 = Color3.fromRGB(120,130,160)
-        coordLbl.Font = Enum.Font.Gotham
-        coordLbl.TextSize = 10
-        coordLbl.TextXAlignment = Enum.TextXAlignment.Left
+        local tpBtn = Instance.new("TextButton", slot)
+        tpBtn.Size = UDim2.new(0, 32, 0, 24)
+        tpBtn.Position = UDim2.new(1, -36, 0.5, -12)
+        tpBtn.BackgroundColor3 = Color3.fromRGB(40,160,100)
+        tpBtn.Text = "TP"
+        tpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+        tpBtn.Font = Enum.Font.GothamBold
+        tpBtn.TextSize = 11
+        tpBtn.BorderSizePixel = 0
+        corner(tpBtn, UDim.new(0,4))
 
-        local tpLocBtn = Instance.new("TextButton", slot)
-        tpLocBtn.Size = UDim2.new(0, 36, 0, 26)
-        tpLocBtn.Position = UDim2.new(1, -42, 0.5, -13)
-        tpLocBtn.BackgroundColor3 = Color3.fromRGB(40,160,100)
-        tpLocBtn.Text = "TP"
-        tpLocBtn.TextColor3 = Color3.fromRGB(255,255,255)
-        tpLocBtn.Font = Enum.Font.GothamBold
-        tpLocBtn.TextSize = 11
-        tpLocBtn.BorderSizePixel = 0
-        corner(tpLocBtn, UDim.new(0,4))
-
-        local delLocBtn = Instance.new("TextButton", slot)
-        delLocBtn.Size = UDim2.new(0, 28, 0, 26)
-        delLocBtn.Position = UDim2.new(1, -72, 0.5, -13)
-        delLocBtn.BackgroundColor3 = Color3.fromRGB(160,40,40)
-        delLocBtn.Text = "×"
-        delLocBtn.TextColor3 = Color3.fromRGB(255,255,255)
-        delLocBtn.Font = Enum.Font.GothamBold
-        delLocBtn.TextSize = 13
-        delLocBtn.BorderSizePixel = 0
-        corner(delLocBtn, UDim.new(0,4))
+        local delBtn = Instance.new("TextButton", slot)
+        delBtn.Size = UDim2.new(0, 28, 0, 24)
+        delBtn.Position = UDim2.new(1, -66, 0.5, -12)
+        delBtn.BackgroundColor3 = Color3.fromRGB(160,40,40)
+        delBtn.Text = "×"
+        delBtn.TextColor3 = Color3.fromRGB(255,255,255)
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.TextSize = 14
+        delBtn.BorderSizePixel = 0
+        corner(delBtn, UDim.new(0,4))
 
         local capturedLoc = loc
         local capturedIndex = i
 
-        tpLocBtn.MouseButton1Click:Connect(function()
+        tpBtn.MouseButton1Click:Connect(function()
             TeleportTo(Vector3.new(capturedLoc.x, capturedLoc.y, capturedLoc.z))
         end)
 
-        delLocBtn.MouseButton1Click:Connect(function()
+        delBtn.MouseButton1Click:Connect(function()
             table.remove(savedLocations, capturedIndex)
             CommitSaves()
             RenderLocations()
@@ -1899,61 +2091,23 @@ local function RenderLocations()
     end
 end
 
-local function ShowNameInput(callback)
-    -- Sederhana: langsung pake input box di UI
-    local nameInput = createInput(toolsPage, "Nama lokasi...", function(text)
-        if text and text ~= "" then callback(text) end
-    end)
-    -- Hapus setelah enter? biarkan saja
-end
-
 local saveCurrentBtn = createButton(toolsPage, "Simpan Lokasi Sekarang", Color3.fromRGB(60,100,255), function()
-    if #savedLocations >= 10 then
-        createLabel(toolsPage, "⚠ Maks 10 lokasi!", Color3.fromRGB(255,80,80))
-        return
-    end
-    -- Kita akan buat popup sederhana dengan input
-    local nameInput = createInput(toolsPage, "Nama lokasi...", function(text)
-        if text and text ~= "" then
-            local char = player.Character
-            if not char then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-            local pos = hrp.Position
-            table.insert(savedLocations, {name = text, x = pos.X, y = pos.Y, z = pos.Z})
-            CommitSaves()
-            RenderLocations()
-            nameInput:Destroy()
-        end
+    if #savedLocations >= MAX_SLOTS then return end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local pos = hrp.Position
+    ShowNameInput(function(name)
+        table.insert(savedLocations, {name = name, x = pos.X, y = pos.Y, z = pos.Z})
+        CommitSaves()
+        RenderLocations()
     end)
 end)
 
-local manualCoordBtn = createButton(toolsPage, "Input Koordinat Manual", Color3.fromRGB(40,130,130), function()
-    if #savedLocations >= 10 then
-        createLabel(toolsPage, "⚠ Maks 10 lokasi!", Color3.fromRGB(255,80,80))
-        return
-    end
-    -- Buat input X, Y, Z, Nama
-    local xInput = createInput(toolsPage, "X", function() end)
-    local yInput = createInput(toolsPage, "Y", function() end)
-    local zInput = createInput(toolsPage, "Z", function() end)
-    local nInput = createInput(toolsPage, "Nama", function() end)
-
-    local submitBtn = createButton(toolsPage, "Simpan", Color3.fromRGB(40,160,160), function()
-        local nx = tonumber(xInput.Text)
-        local ny = tonumber(yInput.Text)
-        local nz = tonumber(zInput.Text)
-        local name = nInput.Text:match("^%s*(.-)%s*$")
-        if not nx or not ny or not nz or name == "" then
-            createLabel(toolsPage, "⚠ Data tidak valid", Color3.fromRGB(255,80,80))
-            return
-        end
-        table.insert(savedLocations, {name = name, x = nx, y = ny, z = nz})
-        CommitSaves()
-        RenderLocations()
-        -- Hapus input fields
-        xInput:Destroy(); yInput:Destroy(); zInput:Destroy(); nInput:Destroy(); submitBtn:Destroy()
-    end)
+local coordInputBtn = createButton(toolsPage, "Input Koordinat Manual", Color3.fromRGB(40,130,130), function()
+    if #savedLocations >= MAX_SLOTS then return end
+    ShowCoordInput()
 end)
 
 RenderLocations()
