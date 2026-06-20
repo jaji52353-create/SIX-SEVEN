@@ -1,5 +1,4 @@
 -- HEXVEIL | Creator: Nazam
--- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -11,13 +10,19 @@ local SoundService = game:GetService("SoundService")
 local lp = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 
--- Cleanup old GUIs
+local function getGui()
+    local ok, cg = pcall(function() return game:GetService("CoreGui") end)
+    if ok and cg then return cg end
+    return lp.PlayerGui
+end
+
+local guiParent = getGui()
+
 for _, name in ipairs({"HEXVEIL_MAIN"}) do
-    local old = game.CoreGui:FindFirstChild(name) or lp.PlayerGui:FindFirstChild(name)
+    local old = guiParent:FindFirstChild(name)
     if old then old:Destroy() end
 end
 
--- THEME
 local T = {
     BG       = Color3.fromRGB(12, 12, 16),
     BG2      = Color3.fromRGB(18, 18, 24),
@@ -38,22 +43,15 @@ local T = {
     STROKE2  = Color3.fromRGB(60, 65, 95),
 }
 
--- SOUND
 local clickSound = Instance.new("Sound")
 clickSound.SoundId = "rbxassetid://6026984224"
 clickSound.Volume = 0.4
 clickSound.Parent = SoundService
 
-local toggleSound = Instance.new("Sound")
-toggleSound.SoundId = "rbxassetid://6026984224"
-toggleSound.Volume = 0.3
-toggleSound.Parent = SoundService
-
 local function playClick()
     clickSound:Play()
 end
 
--- Background music
 local bgMusic = Instance.new("Sound")
 bgMusic.SoundId = "rbxassetid://125026658817868"
 bgMusic.Volume = 0.2
@@ -66,7 +64,6 @@ local function setMusic(on)
     if on then bgMusic:Play() else bgMusic:Stop() end
 end
 
--- HELPERS
 local function corner(parent, radius)
     local c = Instance.new("UICorner", parent)
     c.CornerRadius = UDim.new(0, radius or 8)
@@ -104,19 +101,18 @@ local function makeDrag(frame, handle)
     end)
 end
 
--- ROOT GUI
 local sg = Instance.new("ScreenGui")
 sg.Name = "HEXVEIL_MAIN"
 sg.ResetOnSpawn = false
-sg.IgnoreGuiInset = true
+sg.IgnoreGuiInset = false
 sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-sg.Parent = game.CoreGui
+local ok2, err2 = pcall(function() sg.Parent = game:GetService("CoreGui") end)
+if not ok2 then sg.Parent = lp.PlayerGui end
 
--- TOAST
 local function toast(msg, color)
     local f = Instance.new("Frame", sg)
     f.Size = UDim2.new(0, 280, 0, 40)
-    f.Position = UDim2.new(0.5, -140, 0, -50)
+    f.Position = UDim2.new(0.5, -140, 0, 10)
     f.BackgroundColor3 = T.BG2
     f.BorderSizePixel = 0
     f.ZIndex = 100
@@ -131,18 +127,16 @@ local function toast(msg, color)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 12
     lbl.ZIndex = 101
-    tween(f, {Position = UDim2.new(0.5, -140, 0, 14)}, 0.2, Enum.EasingStyle.Quart):Play()
     task.delay(2.5, function()
-        local tw = tween(f, {Position = UDim2.new(0.5, -140, 0, -50)}, 0.2, Enum.EasingStyle.Quart)
+        local tw = tween(f, {BackgroundTransparency = 1}, 0.2)
         tw:Play(); tw.Completed:Connect(function() f:Destroy() end)
     end)
 end
 
--- MINIMIZE BAR (pill shape, top center)
 local pillW, pillH = 220, 36
 local pill = Instance.new("TextButton", sg)
 pill.Size = UDim2.new(0, pillW, 0, pillH)
-pill.Position = UDim2.new(0.5, -pillW/2, 0, 8)
+pill.Position = UDim2.new(0.5, -pillW/2, 0, 50)
 pill.BackgroundColor3 = T.BG2
 pill.BorderSizePixel = 0
 pill.Text = ""
@@ -151,7 +145,6 @@ pill.AutoButtonColor = false
 corner(pill, pillH/2)
 stroke(pill, T.STROKE2, 1)
 
--- Pill inner shadow glow effect
 local pillGlow = Instance.new("UIGradient", pill)
 pillGlow.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(30,32,50)),
@@ -175,9 +168,7 @@ pillLabel.Font = Enum.Font.GothamBold
 pillLabel.TextSize = 13
 pillLabel.TextColor3 = T.TEXT
 pillLabel.TextXAlignment = Enum.TextXAlignment.Left
-pillLabel.LetterSpacing = 4
 
--- Pulse dot animation
 task.spawn(function()
     while true do
         tween(pillDot, {BackgroundTransparency = 0}, 0.6):Play()
@@ -187,7 +178,6 @@ task.spawn(function()
     end
 end)
 
--- MAIN WINDOW
 local winW, winH = 460, 580
 local win = Instance.new("Frame", sg)
 win.Size = UDim2.new(0, winW, 0, winH)
@@ -199,7 +189,6 @@ win.ClipsDescendants = true
 corner(win, 14)
 stroke(win, T.STROKE2, 1)
 
--- Window gradient
 local winGrad = Instance.new("UIGradient", win)
 winGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(18,18,28)),
@@ -207,7 +196,6 @@ winGrad.Color = ColorSequence.new({
 })
 winGrad.Rotation = 135
 
--- HEADER
 local hdr = Instance.new("Frame", win)
 hdr.Size = UDim2.new(1, 0, 0, 52)
 hdr.BackgroundColor3 = T.BG2
@@ -230,7 +218,6 @@ hdrTitle.Font = Enum.Font.GothamBold
 hdrTitle.TextSize = 16
 hdrTitle.TextColor3 = T.TEXT
 hdrTitle.TextXAlignment = Enum.TextXAlignment.Left
-hdrTitle.LetterSpacing = 6
 hdrTitle.ZIndex = 12
 
 local hdrSub = Instance.new("TextLabel", hdr)
@@ -244,7 +231,6 @@ hdrSub.TextColor3 = T.SUBTEXT
 hdrSub.TextXAlignment = Enum.TextXAlignment.Left
 hdrSub.ZIndex = 12
 
--- Music toggle in header
 local musicBtn = Instance.new("TextButton", hdr)
 musicBtn.Size = UDim2.new(0, 70, 0, 26)
 musicBtn.Position = UDim2.new(1, -82, 0.5, -13)
@@ -271,7 +257,6 @@ end)
 
 makeDrag(win, hdr)
 
--- TABS
 local tabNames = {"COMBAT", "MOVEMENT", "UTILITY", "MONITOR", "TOOLS"}
 local tabBtns = {}
 local tabPages = {}
@@ -296,7 +281,6 @@ tabLayout.FillDirection = Enum.FillDirection.Horizontal
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabLayout.Padding = UDim.new(0, 0)
 
--- Content area
 local content = Instance.new("Frame", win)
 content.Size = UDim2.new(1, 0, 1, -90)
 content.Position = UDim2.new(0, 0, 0, 90)
@@ -378,7 +362,6 @@ for i, tname in ipairs(tabNames) do
     end)
 end
 
--- WIDGET BUILDERS
 local function makeSection(page, title)
     local sec = Instance.new("Frame", page)
     sec.Size = UDim2.new(1, 0, 0, 28)
@@ -393,7 +376,6 @@ local function makeSection(page, title)
     lbl.TextColor3 = T.SUBTEXT
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.ZIndex = 11
-    lbl.LetterSpacing = 3
     local div = Instance.new("Frame", sec)
     div.Size = UDim2.new(1, 0, 0, 1)
     div.Position = UDim2.new(0, 0, 1, -1)
@@ -640,78 +622,15 @@ local function makeDisplayRow(page, label, defVal, order)
     return row, val
 end
 
--- =============================================
--- TAB: COMBAT (Aimbot, ESP)
--- =============================================
+-- COMBAT TAB
 local pgCombat = tabPages["COMBAT"]
 makeSection(pgCombat, "COMBAT"):LayoutOrder = 0
 
--- AIMBOT
-local aimbotEnabled = false
-local lockConn
-local aimbotSmooth = 0.12
-
-local function getNearestPlayer()
-    local nearest, minDist = nil, math.huge
-    local myChar = lp.Character
-    if not myChar then return nil end
-    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil end
-    local vpSize = cam.ViewportSize
-    local cx, cy = vpSize.X/2, vpSize.Y/2
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p == lp then continue end
-        local char = p.Character
-        if not char then continue end
-        local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-        if not head then continue end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not hum or hum.Health <= 0 then continue end
-        local sp, onScreen = cam:WorldToScreenPoint(head.Position)
-        if not onScreen then continue end
-        local dist = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
-        if dist < minDist then minDist = dist; nearest = p end
-    end
-    return nearest
-end
-
-local function startAimbot()
-    if lockConn then return end
-    lockConn = RunService.RenderStepped:Connect(function()
-        local delta = UserInputService:GetMouseDelta()
-        if delta.Magnitude > 1.5 then return end
-        local target = getNearestPlayer()
-        if not target then return end
-        local char = target.Character
-        if not char then return end
-        local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-        if not head then return end
-        local camCF = cam.CFrame
-        local dir = (head.Position - camCF.Position).Unit
-        local goal = CFrame.lookAt(camCF.Position, camCF.Position + dir)
-        cam.CFrame = camCF:Lerp(goal, aimbotSmooth)
-    end)
-end
-
-local function stopAimbot()
-    if lockConn then lockConn:Disconnect(); lockConn = nil end
-end
-
-local _, setAimbot = makeToggleRow(pgCombat, "Aimbot", function(on)
-    aimbotEnabled = on
-    if on then startAimbot() else stopAimbot() end
-end, 1)
-
-local _, setSmoothSlider = makeSliderRow(pgCombat, "Aimbot Smoothness", 1, 30, 12, 1, function(v)
-    aimbotSmooth = v / 100
-end, 2)
-
--- ESP
 local espData = {}
 local espEnabled = false
 local espFolder = Instance.new("Folder")
 espFolder.Name = "HEXVEIL_ESP"
-espFolder.Parent = game.CoreGui
+espFolder.Parent = game:GetService("CoreGui")
 
 local function createESPTag(player)
     if player == lp then return end
@@ -822,15 +741,16 @@ local _, setESP = makeToggleRow(pgCombat, "ESP", function(on)
     for _, bb in pairs(espData) do
         if not on then bb.Enabled = false end
     end
-end, 3)
+end, 1)
 
--- =============================================
--- TAB: MOVEMENT (Fly, Speed, InfJump, NoClip, AirWalk, Spin, Dash)
--- =============================================
+local _, setProjectTes = makeToggleRow(pgCombat, "PROJECT TES", function(on)
+    -- isi logika di sini
+end, 2)
+
+-- MOVEMENT TAB
 local pgMove = tabPages["MOVEMENT"]
 makeSection(pgMove, "MOVEMENT"):LayoutOrder = 0
 
--- FLY
 local flyEnabled = false
 local flySpeed = 50
 local bodyVelocity, bodyGyro
@@ -843,7 +763,7 @@ local function enableFly()
     if not root or not hum then return end
     hum.PlatformStand = true
     bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Velocity = Vector3.zero
+    bodyVelocity.Velocity = Vector3.new(0,0,0)
     bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
     bodyVelocity.Parent = root
     bodyGyro = Instance.new("BodyGyro")
@@ -870,12 +790,12 @@ RunService.RenderStepped:Connect(function()
     local camRight = camCF.RightVector
     local camFwd = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z)
     if camFwd.Magnitude > 0 then camFwd = camFwd.Unit end
-    local raw = Vector2.zero
+    local raw = Vector2.new(0, 0)
     if UserInputService.KeyboardEnabled then
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then raw += Vector2.new(0,1) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then raw += Vector2.new(0,-1) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then raw += Vector2.new(-1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then raw += Vector2.new(1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then raw = raw + Vector2.new(0,1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then raw = raw + Vector2.new(0,-1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then raw = raw + Vector2.new(-1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then raw = raw + Vector2.new(1,0) end
         if raw.Magnitude > 1 then raw = raw.Unit end
     else
         local char = lp.Character
@@ -886,7 +806,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
     if raw.Magnitude < 0.1 then
-        bodyVelocity.Velocity = Vector3.zero
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
     else
         local dir = camFwd * raw.Y + camRight * raw.X
         local pitch = camCF.LookVector.Y
@@ -904,7 +824,6 @@ end, 1)
 
 makeSliderRow(pgMove, "Fly Speed", 10, 300, 50, 5, function(v) flySpeed = v end, 2)
 
--- SPEED
 local _G_SpeedEnabled = false
 local _G_SpeedValue = 16
 local function applySpeed()
@@ -919,12 +838,11 @@ local _, setSpeedToggle = makeToggleRow(pgMove, "Speed Booster", function(on)
     applySpeed()
 end, 3)
 
-local _, setSpeedSlider, getSpeedVal = makeSliderRow(pgMove, "Walk Speed", 16, 300, 16, 5, function(v)
+makeSliderRow(pgMove, "Walk Speed", 16, 300, 16, 5, function(v)
     _G_SpeedValue = v
     if _G_SpeedEnabled then applySpeed() end
 end, 4)
 
--- INFINITE JUMP
 local jumpConn
 local function setInfiniteJump(on)
     if on then
@@ -940,11 +858,10 @@ local function setInfiniteJump(on)
     end
 end
 
-local _, setInfJump = makeToggleRow(pgMove, "Infinite Jump", function(on)
+makeToggleRow(pgMove, "Infinite Jump", function(on)
     setInfiniteJump(on)
 end, 5)
 
--- NO CLIP
 local _G_NoClipEnabled = false
 local noClipConn
 local function setNoClip(on)
@@ -967,12 +884,11 @@ local function setNoClip(on)
     end
 end
 
-local _, setNoClipToggle = makeToggleRow(pgMove, "No Clip", function(on)
+makeToggleRow(pgMove, "No Clip", function(on)
     _G_NoClipEnabled = on
     setNoClip(on)
 end, 6)
 
--- AIR WALK
 local airWalkEnabled = false
 local airPlatform = nil
 local lockedY = nil
@@ -1025,33 +941,15 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local _, setAirWalk = makeToggleRow(pgMove, "Air Walk", function(on)
+makeToggleRow(pgMove, "Air Walk", function(on)
     airWalkEnabled = on
     if on then createPlatform() else removePlatform() end
 end, 7)
 
--- SPIN
 local spinEnabled = false
 local spinSpeed = 550
-local spinConn
-
-local function startSpin()
-    if spinConn then return end
-    spinConn = RunService.Heartbeat:Connect(function()
-        local char = lp.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed * RunService.Heartbeat:Wait()), 0)
-    end)
-end
-
-local function stopSpin()
-    if spinConn then spinConn:Disconnect(); spinConn = nil end
-end
-
--- Fix spin using heartbeat dt properly
 local spinConn2
+
 local function startSpin2()
     if spinConn2 then return end
     spinConn2 = RunService.Heartbeat:Connect(function(dt)
@@ -1067,7 +965,7 @@ local function stopSpin2()
     if spinConn2 then spinConn2:Disconnect(); spinConn2 = nil end
 end
 
-local _, setSpinToggle = makeToggleRow(pgMove, "Spin Karakter", function(on)
+makeToggleRow(pgMove, "Spin Karakter", function(on)
     spinEnabled = on
     if on then startSpin2() else stopSpin2() end
 end, 8)
@@ -1082,13 +980,10 @@ lp.CharacterAdded:Connect(function()
     if airWalkEnabled then removePlatform() end
 end)
 
--- =============================================
--- TAB: UTILITY (Player Teleport, Dash, Teleport Location, Coord Copy)
--- =============================================
+-- UTILITY TAB
 local pgUtil = tabPages["UTILITY"]
 makeSection(pgUtil, "PLAYER TELEPORT"):LayoutOrder = 0
 
--- Player list for teleport
 local selectedTPPlayer = nil
 local hasTPed = false
 local followConn2
@@ -1112,7 +1007,8 @@ local function doTeleport2()
     hasTPed = true
     stopFollow2()
     followConn2 = RunService.Heartbeat:Connect(function()
-        local mc = lp.Character; local tc = selectedTPPlayer.Character
+        local mc = lp.Character
+        local tc = selectedTPPlayer and selectedTPPlayer.Character
         if not mc or not tc then return end
         local mr = mc:FindFirstChild("HumanoidRootPart")
         local tr = tc:FindFirstChild("HumanoidRootPart")
@@ -1121,7 +1017,6 @@ local function doTeleport2()
     toast("Teleport ke " .. selectedTPPlayer.Name)
 end
 
--- Selected player display
 local selRow = Instance.new("Frame", pgUtil)
 selRow.Size = UDim2.new(1, 0, 0, 54)
 selRow.BackgroundColor3 = T.BG2
@@ -1161,7 +1056,6 @@ selDisplay.TextColor3 = T.SUBTEXT
 selDisplay.TextXAlignment = Enum.TextXAlignment.Left
 selDisplay.ZIndex = 11
 
--- Player scroll list
 local plScroll = Instance.new("ScrollingFrame", pgUtil)
 plScroll.Size = UDim2.new(1, 0, 0, 160)
 plScroll.BackgroundColor3 = T.BG2
@@ -1278,28 +1172,27 @@ end)
 
 rebuildPlList()
 
-local _, tpBtn2 = makeButtonRow(pgUtil, "Teleport ke Player", function()
+makeButtonRow(pgUtil, "Teleport ke Player", function()
     doTeleport2()
 end, 3, T.BG3)
 
-local _, turunBtn2 = makeButtonRow(pgUtil, "Turun / Berhenti Follow", function()
+makeButtonRow(pgUtil, "Turun / Berhenti Follow", function()
     stopFollow2(); hasTPed = false
     toast("Follow berhenti")
 end, 4, T.BG3)
 
--- DASH TELEPORT
 makeSection(pgUtil, "DASH TELEPORT"):LayoutOrder = 5
 
 local dashEnabled = false
 local dashDist = 30
 
-local _, setDashToggle = makeToggleRow(pgUtil, "Dash Teleport", function(on)
+makeToggleRow(pgUtil, "Dash Teleport", function(on)
     dashEnabled = on
 end, 6)
 
 makeSliderRow(pgUtil, "Dash Jarak (studs)", 5, 200, 30, 5, function(v) dashDist = v end, 7)
 
-local _, dashBtn = makeButtonRow(pgUtil, "DASH (klik untuk dash)", function()
+makeButtonRow(pgUtil, "DASH", function()
     if not dashEnabled then toast("Aktifkan Dash dulu!"); return end
     local char = lp.Character
     if not char then return end
@@ -1319,14 +1212,13 @@ local _, dashBtn = makeButtonRow(pgUtil, "DASH (klik untuk dash)", function()
     toast("Dash!")
 end, 8, T.BG3)
 
--- TELEPORT LOCATION
 makeSection(pgUtil, "TELEPORT LOCATION"):LayoutOrder = 9
 
 local savedLocs = {}
 
 local function commitSaves()
-    local ok, container = pcall(function() return lp.PlayerGui:FindFirstChild("__HEXVTS") end)
-    if not (ok and container) then
+    local container = lp.PlayerGui:FindFirstChild("__HEXVTS")
+    if not container then
         container = Instance.new("StringValue")
         container.Name = "__HEXVTS"
         container.Parent = lp.PlayerGui
@@ -1335,8 +1227,8 @@ local function commitSaves()
 end
 
 local function loadSaves()
-    local ok, container = pcall(function() return lp.PlayerGui:FindFirstChild("__HEXVTS") end)
-    if ok and container and container:IsA("StringValue") then
+    local container = lp.PlayerGui:FindFirstChild("__HEXVTS")
+    if container and container:IsA("StringValue") then
         pcall(function() savedLocs = HttpService:JSONDecode(container.Value) end)
     end
 end
@@ -1452,7 +1344,7 @@ end
 
 renderLocs()
 
-local _, savLocBtn = makeButtonRow(pgUtil, "Simpan Lokasi Sekarang", function()
+makeButtonRow(pgUtil, "Simpan Lokasi Sekarang", function()
     if #savedLocs >= 10 then toast("Sudah 10 lokasi!"); return end
     local char = lp.Character
     if not char then return end
@@ -1464,10 +1356,9 @@ local _, savLocBtn = makeButtonRow(pgUtil, "Simpan Lokasi Sekarang", function()
     toast("Lokasi disimpan!")
 end, 11, T.BG3)
 
--- KOORDINAT COPY
 makeSection(pgUtil, "KOORDINAT"):LayoutOrder = 12
 
-local coordRow, coordVal = makeDisplayRow(pgUtil, "Posisi", "X: - Y: - Z: -", 13)
+local coordRow, coordVal = makeDisplayRow(pgUtil, "Posisi", "- - -", 13)
 
 RunService.Heartbeat:Connect(function()
     local char = lp.Character
@@ -1478,7 +1369,7 @@ RunService.Heartbeat:Connect(function()
     coordVal.Text = string.format("%.1f, %.1f, %.1f", p.X, p.Y, p.Z)
 end)
 
-local _, copyCoordBtn = makeButtonRow(pgUtil, "Salin Koordinat", function()
+makeButtonRow(pgUtil, "Salin Koordinat", function()
     local char = lp.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -1486,13 +1377,11 @@ local _, copyCoordBtn = makeButtonRow(pgUtil, "Salin Koordinat", function()
     local pos = hrp.Position
     local text = string.format("X: %.2f  Y: %.2f  Z: %.2f", pos.X, pos.Y, pos.Z)
     local ok = pcall(function() setclipboard(text) end)
-    if ok then toast("Koordinat disalin: " .. text, T.GREEN)
-    else toast("setclipboard tidak support di executor ini", T.RED) end
+    if ok then toast("Koordinat disalin!", T.GREEN)
+    else toast("setclipboard tidak support", T.RED) end
 end, 14, T.BG3)
 
--- =============================================
--- TAB: MONITOR (Activity Monitor)
--- =============================================
+-- MONITOR TAB
 local pgMonitor = tabPages["MONITOR"]
 makeSection(pgMonitor, "ACTIVITY MONITOR"):LayoutOrder = 0
 
@@ -1561,7 +1450,7 @@ local function getTimeMon()
 end
 
 local function addLog(playerName, activity, logType)
-    logCount += 1
+    logCount = logCount + 1
     local textColor
     if logType == "damage" then textColor = "ff6666"
     elseif logType == "death" then textColor = "ff4444"
@@ -1613,7 +1502,6 @@ monClearBtn.MouseButton1Click:Connect(function()
     addLog("Sistem", "History dihapus", "system")
 end)
 
--- Monitor logic
 local monConn = {}
 
 local function getPlayerFromPart(part)
@@ -1702,13 +1590,10 @@ end)
 if lp.Character then initMonChar(lp.Character) end
 addLog("Sistem", "HEXVEIL Activity Monitor aktif", "system")
 
--- =============================================
--- TAB: TOOLS (Check ID)
--- =============================================
+-- TOOLS TAB
 local pgTools = tabPages["TOOLS"]
 makeSection(pgTools, "ASSET CHECKER"):LayoutOrder = 0
 
--- Sound tab sub-header
 local assetTabRow = Instance.new("Frame", pgTools)
 assetTabRow.Size = UDim2.new(1, 0, 0, 36)
 assetTabRow.BackgroundColor3 = T.BG2
@@ -1754,7 +1639,6 @@ assetImageBtn.LayoutOrder = 2
 assetImageBtn.ZIndex = 11
 corner(assetImageBtn, 6)
 
--- Sound input
 local soundInputFrame = Instance.new("Frame", pgTools)
 soundInputFrame.Size = UDim2.new(1, 0, 0, 38)
 soundInputFrame.BackgroundColor3 = T.BG2
@@ -1810,7 +1694,6 @@ local sPlayBtn = makeSmallBtn(soundBtnsRow, "PLAY", Color3.fromRGB(20,100,50), 2
 local sStopBtn = makeSmallBtn(soundBtnsRow, "STOP", Color3.fromRGB(120,30,30), 3)
 local sClearBtn = makeSmallBtn(soundBtnsRow, "CLEAR", T.BG3, 4)
 
--- Sound history
 local sHistScroll = Instance.new("ScrollingFrame", pgTools)
 sHistScroll.Size = UDim2.new(1, 0, 0, 100)
 sHistScroll.BackgroundColor3 = T.BG2
@@ -1830,7 +1713,6 @@ local sHistPad = Instance.new("UIPadding", sHistScroll)
 sHistPad.PaddingLeft = UDim.new(0, 6); sHistPad.PaddingRight = UDim.new(0, 6)
 sHistPad.PaddingTop = UDim.new(0, 4); sHistPad.PaddingBottom = UDim.new(0, 4)
 
--- Image input
 local imageInputFrame = Instance.new("Frame", pgTools)
 imageInputFrame.Size = UDim2.new(1, 0, 0, 38)
 imageInputFrame.BackgroundColor3 = T.BG2
@@ -1918,7 +1800,6 @@ local iHistPad = Instance.new("UIPadding", iHistScroll)
 iHistPad.PaddingLeft = UDim.new(0, 6); iHistPad.PaddingRight = UDim.new(0, 6)
 iHistPad.PaddingTop = UDim.new(0, 4); iHistPad.PaddingBottom = UDim.new(0, 4)
 
--- Asset tab switching
 local assetMode = "sound"
 local function switchAsset(mode)
     assetMode = mode
@@ -1994,7 +1875,7 @@ sCheckBtn.MouseButton1Click:Connect(function()
     sCheckBtn.Active = false
     task.spawn(function()
         local ok, msg = checkSoundAsset(id)
-        sHistCount += 1
+        sHistCount = sHistCount + 1
         soundStatusVal.Text = msg
         soundStatusVal.TextColor3 = ok and T.GREEN or T.RED
         addHistRow(sHistScroll, id, ok and "WORK" or "TIDAK WORK", ok, sHistCount)
@@ -2033,7 +1914,7 @@ local function checkImageAsset(id)
     local assetId = "rbxassetid://" .. id
     local temp = Instance.new("ImageLabel")
     temp.Image = assetId; temp.Size = UDim2.new(0,1,0,1)
-    temp.BackgroundTransparency = 1; temp.Parent = game.CoreGui
+    temp.BackgroundTransparency = 1; temp.Parent = game:GetService("CoreGui")
     pcall(function() ContentProvider:PreloadAsync({temp}) end)
     task.wait(0.3)
     local img = temp.Image; temp:Destroy()
@@ -2050,7 +1931,7 @@ iCheckBtn.MouseButton1Click:Connect(function()
     iCheckBtn.Active = false
     task.spawn(function()
         local ok, msg = checkImageAsset(id)
-        iHistCount += 1
+        iHistCount = iHistCount + 1
         imageStatusVal.Text = msg
         imageStatusVal.TextColor3 = ok and T.GREEN or T.RED
         if ok then imgPreview.Image = "rbxassetid://" .. id; imgPreviewNone.Visible = false end
@@ -2066,32 +1947,26 @@ iClearBtn.MouseButton1Click:Connect(function()
     imgPreview.Image = ""; imgPreviewNone.Visible = true
 end)
 
--- =============================================
--- PILL TOGGLE (minimize/maximize)
--- =============================================
+-- PILL TOGGLE
 local winVisible = true
 pill.MouseButton1Click:Connect(function()
     playClick()
     winVisible = not winVisible
     if winVisible then
         win.Visible = true
-        win.BackgroundTransparency = 1
         tween(win, {BackgroundTransparency = 0}, 0.2):Play()
         pillLabel.Text = "HEXVEIL"
     else
         local tw = tween(win, {BackgroundTransparency = 1}, 0.15)
         tw:Play()
         tw.Completed:Connect(function() if not winVisible then win.Visible = false end end)
-        pillLabel.Text = "HEXVEIL  [tersembunyi]"
+        pillLabel.Text = "HEXVEIL  [hidden]"
     end
 end)
 
--- INIT
-switchTab("COMBAT")
-
--- Respawn listeners
 lp.CharacterAdded:Connect(function()
     if flyEnabled then task.wait(0.5); enableFly() end
 end)
 
+switchTab("COMBAT")
 toast("HEXVEIL dimuat! by Nazam", T.GLOW)
